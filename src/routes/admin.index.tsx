@@ -261,7 +261,7 @@ function DashboardPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Catégories disponibles : {totalCategories - disabledCategories.length}/{totalCategories}
+        Catégories disponibles : {effective.length - disabledCategories.length}/{effective.length}
       </p>
     </div>
   );
