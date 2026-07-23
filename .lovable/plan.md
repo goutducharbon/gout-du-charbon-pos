@@ -34,13 +34,24 @@ Objectif : caisse de niveau professionnel (multi-poste, sécurisée, sauvegardé
 - **4.4** Export/Import JSON complet dans Réglages
 - **4.5** Confirmations sur toutes les suppressions destructives
 - **4.6** Décrément de stock automatique à l'envoi cuisine, alertes seuil
+- **4.7** Re-vérification PIN manager pour actions sensibles (remboursement, annulation, offert, ouverture tiroir, clôture caisse, modif menu)
+- **4.8** Notifications cuisine : son (bip configurable) + badge compteur sur icône "Cuisine" quand nouveau ticket en préparation
+- **4.9** UI : défilement horizontal amélioré des catégories (flèches gauche/droite + snap + indicateurs de scroll)
 
 ## Phase 3 — Multi-poste (audit §6 Phase 2)
 
-- Synchronisation temps réel via Supabase Realtime (orders, sessions)
+- Synchronisation temps réel via Supabase Realtime (orders, sessions, stock)
 - Mode hors-ligne dégradé avec re-sync (file d'attente locale)
 - Support multi-succursale (colonne `location_id`)
 
+## Phase 4 — Livraison
+
+- Build final + déploiement sur URL d'aperçu Lovable
+- Export du code source complet (zip) via `/mnt/documents`
+- Documentation utilisateur (README + guide caissier PDF)
+
 ## État actuel
 - ✅ Lovable Cloud activé
-- ⏳ Migration schéma (ce tour)
+- ✅ Migration schéma exécutée
+- ⏳ Seed du menu + bootstrap 1er owner (prochain tour)
+
