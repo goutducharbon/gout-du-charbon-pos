@@ -139,11 +139,11 @@ export const getDashboardStats = createServerFn({ method: "POST" })
       ticket_no: number;
       total: number;
       status: string;
-      payments: unknown;
+      payments: Array<{ method?: string; amount?: number }> | null;
       created_at: string;
-      lines: unknown;
+      lines: Array<Record<string, unknown>> | null;
     };
-    const rows = (orders ?? []) as Row[];
+    const rows = ((orders ?? []) as unknown) as Row[];
     const paid = rows.filter((r) => r.status === "encaissee");
     const total = paid.reduce((s, r) => s + Number(r.total ?? 0), 0);
     const tickets = paid.length;
