@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, redirect } from "@tanstack/react-router";
-import { LayoutDashboard, ListOrdered, FileBarChart, Users, Lock, ArrowLeft, LogOut, ShoppingBag, FileText, Package, UserSquare2 } from "lucide-react";
+import { LayoutDashboard, ListOrdered, FileBarChart, Users, Lock, ArrowLeft, LogOut, ShoppingBag, FileText, Package, UserSquare2, ChefHat, BarChart3 } from "lucide-react";
 import { useAdmin } from "@/store/admin-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,8 @@ export const Route = createFileRoute("/admin")({
 
 const NAV = [
   { to: "/admin", label: "Tableau de bord", icon: LayoutDashboard, exact: true },
+  { to: "/admin/dashboard", label: "Analytics CA", icon: BarChart3 },
+  { to: "/kitchen", label: "Écran cuisine", icon: ChefHat },
   { to: "/admin/menu", label: "Menu & Catégories", icon: ShoppingBag },
   { to: "/admin/inventory", label: "Inventaire", icon: Package },
   { to: "/admin/invoices", label: "Devis & Factures", icon: FileText },

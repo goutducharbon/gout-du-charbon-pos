@@ -1,57 +1,91 @@
-# Plan — Système de caisse Le Goût du Charbon
+# Plan d'exécution — Finalisation Goût du Charbon
 
-Objectif : caisse de niveau professionnel (multi-poste, sécurisée, sauvegardée, conforme), lié au rapport d'audit (juillet 2026).
+Objectif : livrer un système de caisse « digne des grosses boîtes », plus un rapport PDF final récapitulatif.
 
-## Phase 0 — Backend Supabase (EN COURS)
+## 1. Authentification (Google + Email)
 
-**0.1 Schéma DB** ← ce tour
-- Types : app_role, employee_role, order_type, order_status, payment_method, discount_type, invoice_kind
-- Tables : `profiles`, `user_roles`, `restaurant_settings`, `categories`, `menu_items`, `menu_extras`, `employees`, `pin_attempts`, `clients`, `cash_sessions`, `orders`, `stock_movements`, `invoices`, `audit_log`
-- Fonction sécurisée `has_role()`, séquence `ticket_seq`, triggers `updated_at`
-- RLS : lecture/écriture réservée aux utilisateurs authentifiés (staff), actions sensibles réservées à `owner`
+- Activer Google OAuth via le tool social auth (managé Lovable Cloud, aucun secret à saisir).
+- Créer la route publique `/auth` : onglets **Connexion** / **Inscription** (email + mot de passe) + bouton **Continuer avec Google**.
+- Layout `_authenticated` déjà géré par l'intégration (SSR off, redirect `/auth`).
+- Bouton **Déconnexion** dans le header admin/POS avec teardown du cache TanStack Query + `navigate('/auth', { replace: true })`.
+- Écouteur `onAuthStateChange` unique dans `__root.tsx` filtré (SIGNED_IN / SIGNED_OUT / USER_UPDATED).
 
-**0.2 Seed du menu** (prochain tour)
-- Import de `src/data/menu.ts` → tables `categories` / `menu_items` / `menu_extras` via migration idempotente
+## 2. Écran Bootstrap Owner
 
-**0.3 Refactor code Zustand → Supabase** (tours suivants)
-- Remplacer `pos-store` (orders, sessions, stocks) par TanStack Query + `createServerFn`
-- Remplacer `admin-store` (menu overrides, employees, clients, invoices) par requêtes DB
-- Conserver Zustand uniquement pour l'état UI éphémère (panier en cours, thème)
+- Route `/bootstrap` publique.
+- Si aucun `user_roles` avec role='owner' n'existe → affiche formulaire création (nom restaurant, ICE, adresse, tél).
+- À la validation : crée compte email/pass, assigne role `owner`, initialise `restaurant_settings` (id=1) et redirige vers `/admin`.
+- Si un owner existe déjà → redirige vers `/auth`.
+- Server function `bootstrapOwner` (unauthenticated mais idempotente : refuse si owner existe).
 
-## Phase 1 — Sécurité (audit §3)
+## 3. Re-vérification PIN pour actions sensibles
 
-- **3.1** Retirer les identifiants owner en dur → auth Supabase (email/password + Google), rôle `owner` via `user_roles`
-- **3.2** PIN manager avec **hash bcrypt** + verrouillage après 5 échecs (5 min) via table `pin_attempts`
-- **3.3** Sauvegardes automatiques : la DB Supabase est sauvegardée quotidiennement + bouton "Export JSON complet" dans Réglages
-- **3.5** Traçabilité : nom caissier auto depuis employé connecté, plus modifiable manuellement
-- **4.5** Verrouillage auto de l'écran Admin après 10 min d'inactivité
+- Composant `<PinReverifyDialog>` (modal shadcn) : saisie 4 chiffres, feedback erreur, décompte tentatives.
+- Hook `usePinReverify(action)` : renvoie une promesse résolue si PIN valide dans les **5 dernières minutes**, sinon ouvre le modal.
+- Actions protégées : annulation ticket, remise, retrait caisse, suppression produit, modification prix, clôture session.
+- Server function `verifyPin({ pin, employee_id })` avec :
+  - Bcrypt compare (`pin_hash`).
+  - Rate-limit via `pin_attempts` : 5 tentatives / 15 min → verrouillage employé 15 min.
+  - Log dans `audit_log`.
+- Durée validité stockée en mémoire (Zustand), effacée à la déconnexion et à la fermeture d'onglet.
 
-## Phase 2 — Fonctionnel (audit §4)
+## 4. Notifications cuisine temps réel
 
-- **4.1** Impression ESC/POS ticket client + bon cuisine séparé
-- **4.2** Conformité DGI : tickets immuables (WORM), horodatage signé, journal `audit_log`
-- **4.3** Tableau de bord Recharts (CA/heure, top vendeurs, écarts de caisse), export PDF/CSV multi-critères
-- **4.4** Export/Import JSON complet dans Réglages
-- **4.5** Confirmations sur toutes les suppressions destructives
-- **4.6** Décrément de stock automatique à l'envoi cuisine, alertes seuil
-- **4.7** Re-vérification PIN manager pour actions sensibles (remboursement, annulation, offert, ouverture tiroir, clôture caisse, modif menu)
-- **4.8** Notifications cuisine : son (bip configurable) + badge compteur sur icône "Cuisine" quand nouveau ticket en préparation
-- **4.9** UI : défilement horizontal amélioré des catégories (flèches gauche/droite + snap + indicateurs de scroll)
+- Table `orders` : ajouter au `supabase_realtime` publication (migration).
+- Route `/kitchen` (protégée) : liste des commandes `status IN ('en_attente','en_preparation')`, tri FIFO.
+- Realtime channel `orders` → INSERT/UPDATE :
+  - Badge compteur dans le header (rouge + pulsation).
+  - Son via `<audio>` déclenché sur nouvelle commande (préchargé, mute-toggle).
+  - Toast shadcn « Nouvelle commande #123 ».
+- Boutons cuisine : **Prise en charge**, **Prêt**, **Servi** → mutation optimistic + invalidate.
+- UX : cartes colorées par ancienneté (vert <5min, jaune <10min, rouge >10min).
 
-## Phase 3 — Multi-poste (audit §6 Phase 2)
+## 5. Dashboard + Exports
 
-- Synchronisation temps réel via Supabase Realtime (orders, sessions, stock)
-- Mode hors-ligne dégradé avec re-sync (file d'attente locale)
-- Support multi-succursale (colonne `location_id`)
+- Route `/admin/dashboard` avec Recharts :
+  - CA du jour / semaine / mois (BarChart).
+  - Top 10 produits (BarChart horizontal).
+  - Répartition modes de paiement (PieChart).
+  - Courbe des commandes / heure (LineChart).
+  - KPI cards : CA, tickets, panier moyen, % annulations.
+- Sélecteur de période (aujourd'hui, 7j, 30j, custom).
+- Server functions authentifiées : `getDashboardStats`, `getOrdersRange`.
+- **Export CSV** : commandes filtrées → blob téléchargé côté client (papaparse).
+- **Export PDF** : jsPDF + autoTable → rapport de chiffre d'affaires (en-tête restaurant, période, total, TVA, liste commandes).
 
-## Phase 4 — Livraison
+## 6. Rapport PDF final récapitulatif
 
-- Build final + déploiement sur URL d'aperçu Lovable
-- Export du code source complet (zip) via `/mnt/documents`
-- Documentation utilisateur (README + guide caissier PDF)
+À la toute fin, je génère `/mnt/documents/rapport-gout-du-charbon.pdf` (via reportlab côté sandbox) contenant :
 
-## État actuel
-- ✅ Lovable Cloud activé
-- ✅ Migration schéma exécutée
-- ⏳ Seed du menu + bootstrap 1er owner (prochain tour)
+**Partie A — Backend Supabase**
+- Fait : tables créées, RLS, triggers, séquences, fonctions, seed menu, sécurité corrigée.
+- Reste à faire : monitoring logs, sauvegardes planifiées, migrations futures.
+- À compléter : politiques anon pour menu public si besoin borne QR.
 
+**Partie B — Système de caisse (frontend)**
+- Fait : POS existant, auth Google+email, bootstrap owner, PIN sensible, cuisine temps réel, dashboard, exports.
+- Reste à faire : impression thermique ESC/POS, conformité DGI (numérotation factures certifiée), mode hors-ligne offline-first.
+- À compléter : tests E2E, documentation utilisateur, formation staff.
+
+Livré en tant que `<presentation-artifact>` téléchargeable.
+
+## Détails techniques
+
+- Ordre d'exécution : Auth → Bootstrap → PIN → Cuisine Realtime → Dashboard → Rapport PDF.
+- Toutes les mutations passent par `createServerFn` + `requireSupabaseAuth`.
+- Realtime activé via `ALTER PUBLICATION supabase_realtime ADD TABLE public.orders`.
+- Hash PIN : `bcrypt` (dépendance `bcryptjs` côté serverFn).
+- PDF exports : `jspdf` + `jspdf-autotable`.
+- Charts : `recharts` (déjà installé probable, à vérifier).
+- CSV : `papaparse`.
+
+## Ordre visible dans le chat
+
+1. Activer Google auth + migration realtime.
+2. Créer routes `/auth`, `/bootstrap`, screens.
+3. Server functions auth + bootstrap + PIN + dashboard.
+4. Composants PIN modal, kitchen, dashboard.
+5. Wiring header (sign-out, badge cuisine).
+6. Génération rapport PDF final.
+
+Confirme et je fonce.
