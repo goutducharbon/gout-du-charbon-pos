@@ -24,13 +24,12 @@ export const Route = createFileRoute("/kitchen")({
 
 type Row = {
   id: string;
-  ticket_number: number | null;
+  ticket_no: number | null;
   status: string;
-  items: unknown;
+  lines: unknown;
   created_at: string;
-  table_number: string | null;
-  order_type: string | null;
-  notes: string | null;
+  table_no: string | null;
+  type: string | null;
 };
 
 function ageMinutes(iso: string) {
@@ -41,8 +40,10 @@ function KitchenPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [muted, setMuted] = useState(false);
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mutedRef = useRef(false);
+  mutedRef.current = muted;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -58,10 +59,10 @@ function KitchenPage() {
   const load = async () => {
     const { data } = await supabase
       .from("orders")
-      .select("id, ticket_number, status, items, created_at, table_number, order_type, notes")
-      .in("status", ["en_attente", "en_preparation", "prete"])
+      .select("id, ticket_no, status, lines, created_at, table_no, type")
+      .eq("status", "en-cuisine")
       .order("created_at", { ascending: true });
-    setRows((data as Row[]) ?? []);
+    setRows(((data ?? []) as unknown) as Row[]);
   };
 
   useEffect(() => {
@@ -71,8 +72,8 @@ function KitchenPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
         if (payload.eventType === "INSERT") {
           const newRow = payload.new as Row;
-          toast.info(`🔔 Nouvelle commande #${newRow.ticket_number ?? "?"}`);
-          if (!muted && audioRef.current) {
+          toast.info(`🔔 Nouvelle commande #${newRow.ticket_no ?? "?"}`);
+          if (!mutedRef.current && audioRef.current) {
             audioRef.current.currentTime = 0;
             audioRef.current.play().catch(() => {});
           }
@@ -83,20 +84,20 @@ function KitchenPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [muted]);
+  }, []);
 
-  const setStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+  const markPaid = async (id: string) => {
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "encaissee", paid_at: new Date().toISOString() })
+      .eq("id", id);
     if (error) toast.error(error.message);
+    else toast.success("Commande encaissée");
   };
-
-  const pending = rows.filter((r) => r.status !== "prete");
-  void tick;
 
   return (
     <div className="min-h-[100dvh] bg-background p-4 text-foreground">
       <Toaster />
-      {/* Notification tone: pre-generated short beep */}
       <audio
         ref={audioRef}
         src="data:audio/wav;base64,UklGRhwCAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YfgBAACJi5CVmp+kqa2xtrq9wcTHycvNz9DR0dHR0M/OzMrHxMG9ubWwq6ahnJeSjYiEgHt3c290cHFyc3V3eXt+gIOFiIqNj5GTlZeYmpyeoKGjpKWmp6iop6enp6eno6WkoJ+dm5mXlZOQjoyKh4WCgH58e3l4dnV0c3JycXFxcXFxcXFyc3R0dXd4eXp7fH1+f4CAgYGCg4ODhIWFhYaGhoaHh4eHh4eHh4eHh4aGhoaFhYWEhIODg4KCgYGAgIB/f39+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+"
@@ -108,12 +109,12 @@ function KitchenPage() {
           <div>
             <h1 className="text-xl font-bold">Cuisine</h1>
             <p className="text-xs text-muted-foreground">
-              {pending.length} commande{pending.length > 1 ? "s" : ""} en cours
+              {rows.length} commande{rows.length > 1 ? "s" : ""} en cours
             </p>
           </div>
-          {pending.length > 0 && (
+          {rows.length > 0 && (
             <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-xs font-bold text-destructive-foreground animate-pulse">
-              <Bell className="size-3" /> {pending.length}
+              <Bell className="size-3" /> {rows.length}
             </span>
           )}
         </div>
@@ -132,35 +133,33 @@ function KitchenPage() {
 
       {rows.length === 0 ? (
         <div className="grid place-items-center rounded-2xl border border-dashed border-border p-16 text-muted-foreground">
-          Aucune commande en cours 🎉
+          Aucune commande en cuisine 🎉
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {rows.map((r) => {
             const age = ageMinutes(r.created_at);
-            const items = Array.isArray(r.items)
-              ? (r.items as Array<{ name: string; quantity?: number; qty?: number; notes?: string }>)
+            const items = Array.isArray(r.lines)
+              ? (r.lines as Array<{ name: string; quantity?: number; qty?: number; notes?: string }>)
               : [];
             return (
               <div
                 key={r.id}
                 className={cn(
                   "rounded-2xl border-2 bg-card p-3 shadow-sm transition-colors",
-                  r.status === "prete"
-                    ? "border-blue-500/50 bg-blue-500/5"
-                    : age < 5
-                      ? "border-emerald-500/60"
-                      : age < 10
-                        ? "border-amber-500/70 bg-amber-500/5"
-                        : "border-red-500/70 bg-red-500/10 animate-pulse",
+                  age < 5
+                    ? "border-emerald-500/60"
+                    : age < 10
+                      ? "border-amber-500/70 bg-amber-500/5"
+                      : "border-red-500/70 bg-red-500/10 animate-pulse",
                 )}
               >
                 <div className="mb-2 flex items-center justify-between">
                   <div className="text-lg font-bold">
-                    #{r.ticket_number ?? "—"}
-                    {r.table_number && (
+                    #{r.ticket_no ?? "—"}
+                    {r.table_no && (
                       <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">
-                        Table {r.table_number}
+                        Table {r.table_no}
                       </span>
                     )}
                   </div>
@@ -168,9 +167,9 @@ function KitchenPage() {
                     <Clock className="size-3" /> {age}′
                   </div>
                 </div>
-                {r.order_type && (
+                {r.type && (
                   <div className="mb-2 inline-block rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-primary">
-                    {r.order_type}
+                    {r.type}
                   </div>
                 )}
                 <ul className="mb-2 space-y-1 text-sm">
@@ -181,27 +180,10 @@ function KitchenPage() {
                     </li>
                   ))}
                 </ul>
-                {r.notes && (
-                  <div className="mb-2 rounded bg-muted p-1.5 text-xs italic text-muted-foreground">
-                    📝 {r.notes}
-                  </div>
-                )}
                 <div className="mt-2 flex gap-1">
-                  {r.status === "en_attente" && (
-                    <Button size="sm" className="flex-1" onClick={() => setStatus(r.id, "en_preparation")}>
-                      Prise en charge
-                    </Button>
-                  )}
-                  {r.status === "en_preparation" && (
-                    <Button size="sm" className="flex-1" onClick={() => setStatus(r.id, "prete")}>
-                      <CheckCircle2 className="mr-1 size-4" /> Prête
-                    </Button>
-                  )}
-                  {r.status === "prete" && (
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setStatus(r.id, "servie")}>
-                      Servie
-                    </Button>
-                  )}
+                  <Button size="sm" className="flex-1" onClick={() => markPaid(r.id)}>
+                    <CheckCircle2 className="mr-1 size-4" /> Encaisser
+                  </Button>
                 </div>
               </div>
             );

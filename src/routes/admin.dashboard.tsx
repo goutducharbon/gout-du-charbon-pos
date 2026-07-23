@@ -66,10 +66,9 @@ function DashboardPage() {
     }
     const csv = Papa.unparse(
       data.orders.map((o) => ({
-        ticket: o.ticket_number,
+        ticket: o.ticket_no,
         date: o.created_at,
         statut: o.status,
-        paiement: o.payment_method,
         total: o.total,
       })),
     );
@@ -99,12 +98,11 @@ function DashboardPage() {
 
     autoTable(doc, {
       startY: 65,
-      head: [["Ticket", "Date", "Statut", "Paiement", "Total (MAD)"]],
+      head: [["Ticket", "Date", "Statut", "Total (MAD)"]],
       body: (data.orders ?? []).map((o) => [
-        o.ticket_number ?? "—",
+        o.ticket_no ?? "—",
         new Date(o.created_at as string).toLocaleString("fr-FR"),
         o.status,
-        o.payment_method ?? "—",
         Number(o.total ?? 0).toFixed(2),
       ]),
       styles: { fontSize: 8 },
