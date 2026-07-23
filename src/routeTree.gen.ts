@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as KitchenRouteImport } from './routes/kitchen'
+import { Route as BootstrapRouteImport } from './routes/bootstrap'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -20,8 +22,19 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminInvoicesRouteImport } from './routes/admin.invoices'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminEmployeesRouteImport } from './routes/admin.employees'
+import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 
+const KitchenRoute = KitchenRouteImport.update({
+  id: '/kitchen',
+  path: '/kitchen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BootstrapRoute = BootstrapRouteImport.update({
+  id: '/bootstrap',
+  path: '/bootstrap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -77,6 +90,11 @@ const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
   path: '/employees',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminClientsRoute = AdminClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
@@ -87,7 +105,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bootstrap': typeof BootstrapRoute
+  '/kitchen': typeof KitchenRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/invoices': typeof AdminInvoicesRoute
@@ -100,7 +121,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/bootstrap': typeof BootstrapRoute
+  '/kitchen': typeof KitchenRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/invoices': typeof AdminInvoicesRoute
@@ -115,7 +139,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bootstrap': typeof BootstrapRoute
+  '/kitchen': typeof KitchenRoute
   '/admin/clients': typeof AdminClientsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/invoices': typeof AdminInvoicesRoute
@@ -131,7 +158,10 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bootstrap'
+    | '/kitchen'
     | '/admin/clients'
+    | '/admin/dashboard'
     | '/admin/employees'
     | '/admin/inventory'
     | '/admin/invoices'
@@ -144,7 +174,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/bootstrap'
+    | '/kitchen'
     | '/admin/clients'
+    | '/admin/dashboard'
     | '/admin/employees'
     | '/admin/inventory'
     | '/admin/invoices'
@@ -158,7 +191,10 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bootstrap'
+    | '/kitchen'
     | '/admin/clients'
+    | '/admin/dashboard'
     | '/admin/employees'
     | '/admin/inventory'
     | '/admin/invoices'
@@ -173,10 +209,26 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BootstrapRoute: typeof BootstrapRoute
+  KitchenRoute: typeof KitchenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/kitchen': {
+      id: '/kitchen'
+      path: '/kitchen'
+      fullPath: '/kitchen'
+      preLoaderRoute: typeof KitchenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bootstrap': {
+      id: '/bootstrap'
+      path: '/bootstrap'
+      fullPath: '/bootstrap'
+      preLoaderRoute: typeof BootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -254,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEmployeesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/clients': {
       id: '/admin/clients'
       path: '/clients'
@@ -266,6 +325,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminClientsRoute: typeof AdminClientsRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminInvoicesRoute: typeof AdminInvoicesRoute
@@ -278,6 +338,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminClientsRoute: AdminClientsRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminInvoicesRoute: AdminInvoicesRoute,
@@ -294,6 +355,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
+  BootstrapRoute: BootstrapRoute,
+  KitchenRoute: KitchenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
