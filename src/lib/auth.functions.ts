@@ -186,12 +186,20 @@ export const getDashboardStats = createServerFn({ method: "POST" })
     }
     const topItems = Object.values(topMap).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
 
+    const ordersOut = rows.map((r) => ({
+      id: r.id,
+      ticket_no: r.ticket_no,
+      total: Number(r.total ?? 0),
+      status: r.status,
+      created_at: r.created_at,
+    }));
+
     return {
       kpi: { total, tickets, cancelled, avgTicket, cancelRate: rows.length ? cancelled / rows.length : 0 },
       byHour: Object.entries(byHour).sort().map(([k, v]) => ({ hour: k, total: v })),
       byDay: Object.entries(byDay).sort().map(([k, v]) => ({ day: k, total: v })),
       byPayment: Object.entries(byPayment).map(([k, v]) => ({ method: k, total: v })),
       topItems,
-      orders: rows,
+      orders: ordersOut,
     };
   });
