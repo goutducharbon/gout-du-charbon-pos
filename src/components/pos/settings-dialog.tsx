@@ -11,8 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePos, useTheme } from "@/store/pos-store";
+import { useAdmin } from "@/store/admin-store";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Download, Upload } from "lucide-react";
+import { toast } from "sonner";
+import { useRef } from "react";
 
 export function SettingsDialog({
   open,
