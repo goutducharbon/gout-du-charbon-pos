@@ -4,6 +4,7 @@ import { useAdmin } from "@/store/admin-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePos } from "@/store/pos-store";
+import { useIdleLock } from "@/hooks/use-idle-lock";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
