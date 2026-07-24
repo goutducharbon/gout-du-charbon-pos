@@ -55,6 +55,9 @@ function AdminLayout() {
   const logout = useAdmin((s) => s.logout);
   const settings = usePos((s) => s.settings);
 
+  // Auto-lock : déconnexion admin après 10 minutes d'inactivité.
+  useIdleLock(authed, 10 * 60_000, logout);
+
   if (!authed) {
     return <Outlet />;
   }
