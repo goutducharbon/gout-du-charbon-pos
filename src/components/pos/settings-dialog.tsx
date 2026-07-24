@@ -196,6 +196,32 @@ export function SettingsDialog({
               </div>
             </div>
           </div>
+
+          <div className="border-t border-border pt-3">
+            <h3 className="mb-2 text-sm font-semibold">Sauvegarde</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={exportJson}>
+                <Download className="mr-1.5 size-4" /> Exporter JSON
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => fileRef.current?.click()}>
+                <Upload className="mr-1.5 size-4" /> Importer JSON
+              </Button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void importJson(f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+            <p className="mt-1.5 text-[10px] text-muted-foreground">
+              Sauvegarde locale des réglages, menu personnalisé, employés, clients, commandes et sessions.
+            </p>
+          </div>
         </div>
 
         <DialogFooter>
