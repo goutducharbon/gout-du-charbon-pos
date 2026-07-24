@@ -46,6 +46,7 @@ export function KitchenDialog({
   const cashierName = usePos((s) => s.cashierName);
   const [paying, setPaying] = useState<Order | null>(null);
   const [cancelling, setCancelling] = useState<Order | null>(null);
+  const requirePin = usePinReverify();
 
   return (
     <>
