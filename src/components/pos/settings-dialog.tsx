@@ -35,6 +35,41 @@ export function SettingsDialog({
   const setMode = useTheme((s) => s.setMode);
   const setBrightness = useTheme((s) => s.setBrightness);
 
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const exportJson = () => {
+    const snapshot = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      pos: usePos.getState(),
+      admin: useAdmin.getState(),
+      theme: useTheme.getState(),
+    };
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `caisse-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Sauvegarde exportée");
+  };
+
+  const importJson = async (file: File) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data?.pos || !data?.admin) throw new Error("Fichier invalide");
+      if (!confirm("Remplacer les données actuelles par le contenu du fichier ?")) return;
+      usePos.setState(data.pos);
+      useAdmin.setState(data.admin);
+      if (data.theme) useTheme.setState(data.theme);
+      toast.success("Sauvegarde importée — rechargez la page");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Import impossible");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md bg-panel">
