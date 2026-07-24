@@ -368,11 +368,12 @@ export function HistoryDialog({
             <AlertDialogCancel>Retour</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (refunding) {
-                  refundOrder(refunding.id, currentCashierName || undefined);
-                  setRefunding(null);
-                }
+              onClick={async () => {
+                if (!refunding) return;
+                const ok = await requirePin("refund_order", `Remboursement ticket #${refunding.ticketNo}`);
+                if (!ok) return;
+                refundOrder(refunding.id, currentCashierName || undefined);
+                setRefunding(null);
               }}
             >
               Confirmer le remboursement
