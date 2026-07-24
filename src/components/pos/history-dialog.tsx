@@ -36,6 +36,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Download, Receipt, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePinReverify } from "@/components/pin-reverify-dialog";
 
 export function HistoryDialog({
   open,
