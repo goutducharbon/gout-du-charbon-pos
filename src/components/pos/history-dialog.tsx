@@ -36,6 +36,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Download, Receipt, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePinReverify } from "@/components/pin-reverify-dialog";
 
 export function HistoryDialog({
   open,
@@ -52,6 +53,7 @@ export function HistoryDialog({
   const currentCashierName = usePos((s) => s.cashierName);
   const [q, setQ] = useState("");
   const [refunding, setRefunding] = useState<Order | null>(null);
+  const requirePin = usePinReverify();
 
   const paidToday = useMemo(() => {
     const start = new Date();
@@ -366,11 +368,12 @@ export function HistoryDialog({
             <AlertDialogCancel>Retour</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (refunding) {
-                  refundOrder(refunding.id, currentCashierName || undefined);
-                  setRefunding(null);
-                }
+              onClick={async () => {
+                if (!refunding) return;
+                const ok = await requirePin("refund_order", `Remboursement ticket #${refunding.ticketNo}`);
+                if (!ok) return;
+                refundOrder(refunding.id, currentCashierName || undefined);
+                setRefunding(null);
               }}
             >
               Confirmer le remboursement

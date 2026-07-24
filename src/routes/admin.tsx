@@ -4,6 +4,7 @@ import { useAdmin } from "@/store/admin-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePos } from "@/store/pos-store";
+import { useIdleLock } from "@/hooks/use-idle-lock";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -54,6 +55,9 @@ function AdminLayout() {
   const roleName = useAdmin((s) => s.roleName);
   const logout = useAdmin((s) => s.logout);
   const settings = usePos((s) => s.settings);
+
+  // Auto-lock : déconnexion admin après 10 minutes d'inactivité.
+  useIdleLock(authed, 10 * 60_000, logout);
 
   if (!authed) {
     return <Outlet />;

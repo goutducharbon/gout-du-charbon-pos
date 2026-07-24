@@ -11,8 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePos, useTheme } from "@/store/pos-store";
+import { useAdmin } from "@/store/admin-store";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Download, Upload } from "lucide-react";
+import { toast } from "sonner";
+import { useRef } from "react";
 
 export function SettingsDialog({
   open,
@@ -31,6 +34,41 @@ export function SettingsDialog({
   const brightness = useTheme((s) => s.brightness);
   const setMode = useTheme((s) => s.setMode);
   const setBrightness = useTheme((s) => s.setBrightness);
+
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const exportJson = () => {
+    const snapshot = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      pos: usePos.getState(),
+      admin: useAdmin.getState(),
+      theme: useTheme.getState(),
+    };
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `caisse-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Sauvegarde exportée");
+  };
+
+  const importJson = async (file: File) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data?.pos || !data?.admin) throw new Error("Fichier invalide");
+      if (!confirm("Remplacer les données actuelles par le contenu du fichier ?")) return;
+      usePos.setState(data.pos);
+      useAdmin.setState(data.admin);
+      if (data.theme) useTheme.setState(data.theme);
+      toast.success("Sauvegarde importée — rechargez la page");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Import impossible");
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -157,6 +195,32 @@ export function SettingsDialog({
                 <span>Lumineux</span>
               </div>
             </div>
+          </div>
+
+          <div className="border-t border-border pt-3">
+            <h3 className="mb-2 text-sm font-semibold">Sauvegarde</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={exportJson}>
+                <Download className="mr-1.5 size-4" /> Exporter JSON
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => fileRef.current?.click()}>
+                <Upload className="mr-1.5 size-4" /> Importer JSON
+              </Button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void importJson(f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+            <p className="mt-1.5 text-[10px] text-muted-foreground">
+              Sauvegarde locale des réglages, menu personnalisé, employés, clients, commandes et sessions.
+            </p>
           </div>
         </div>
 

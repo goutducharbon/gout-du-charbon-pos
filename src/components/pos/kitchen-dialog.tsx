@@ -29,6 +29,7 @@ import { fr } from "date-fns/locale";
 import { Ban, Banknote, ChefHat } from "lucide-react";
 import { PaymentDialog } from "./payment-dialog";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { usePinReverify } from "@/components/pin-reverify-dialog";
 
 export function KitchenDialog({
   open,
@@ -45,6 +46,7 @@ export function KitchenDialog({
   const cashierName = usePos((s) => s.cashierName);
   const [paying, setPaying] = useState<Order | null>(null);
   const [cancelling, setCancelling] = useState<Order | null>(null);
+  const requirePin = usePinReverify();
 
   return (
     <>
@@ -150,11 +152,12 @@ export function KitchenDialog({
             <AlertDialogCancel>Retour</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (cancelling) {
-                  cancelOrder(cancelling.id, cashierName || undefined);
-                  setCancelling(null);
-                }
+              onClick={async () => {
+                if (!cancelling) return;
+                const ok = await requirePin("cancel_order", `Annulation ticket #${cancelling.ticketNo}`);
+                if (!ok) return;
+                cancelOrder(cancelling.id, cashierName || undefined);
+                setCancelling(null);
               }}
             >
               Confirmer l'annulation
