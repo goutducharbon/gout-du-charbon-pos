@@ -29,6 +29,7 @@ import { fr } from "date-fns/locale";
 import { Ban, Banknote, ChefHat } from "lucide-react";
 import { PaymentDialog } from "./payment-dialog";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { usePinReverify } from "@/components/pin-reverify-dialog";
 
 export function KitchenDialog({
   open,
