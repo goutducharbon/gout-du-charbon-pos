@@ -53,6 +53,7 @@ export function HistoryDialog({
   const currentCashierName = usePos((s) => s.cashierName);
   const [q, setQ] = useState("");
   const [refunding, setRefunding] = useState<Order | null>(null);
+  const requirePin = usePinReverify();
 
   const paidToday = useMemo(() => {
     const start = new Date();
