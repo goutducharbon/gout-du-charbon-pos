@@ -151,11 +151,12 @@ export function KitchenDialog({
             <AlertDialogCancel>Retour</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (cancelling) {
-                  cancelOrder(cancelling.id, cashierName || undefined);
-                  setCancelling(null);
-                }
+              onClick={async () => {
+                if (!cancelling) return;
+                const ok = await requirePin("cancel_order", `Annulation ticket #${cancelling.ticketNo}`);
+                if (!ok) return;
+                cancelOrder(cancelling.id, cashierName || undefined);
+                setCancelling(null);
               }}
             >
               Confirmer l'annulation
